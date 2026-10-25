@@ -1,0 +1,437 @@
+name: Build PrivChro APK
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: '8.4'
+
+      - name: Check files
+        run: |
+          test -f index.html || (echo "index.html tapilmadi" && exit 1)
+          test -f logo.jpg || (echo "logo.jpg tapilmadi (sekli logo.jpg adi ile repoya yukle)" && exit 1)
+
+      - name: Generate Android project
+        run: |
+          command -v convert >/dev/null || sudo apt-get install -y imagemagick
+          A=android
+          M=$A/app/src/main
+          mkdir -p $M/java/com/privchro/app $M/assets
+
+          # ---- logo (round) + launcher icons ----
+          convert logo.jpg -resize 512x512! -alpha set \
+            \( -size 512x512 xc:none -fill white -draw "circle 256,256 256,2" \) \
+            -compose DstIn -composite logo_round.png
+          cp logo_round.png $M/assets/logo.png
+          cp index.html $M/assets/index.html
+          for d in mdpi:48 hdpi:72 xhdpi:96 xxhdpi:144 xxxhdpi:192; do
+            n=${d%%:*}; s=${d##*:}
+            mkdir -p $M/res/mipmap-$n
+            convert logo_round.png -resize ${s}x${s} $M/res/mipmap-$n/ic_launcher.png
+          done
+
+          # ---- gradle files ----
+          cat > $A/settings.gradle <<'EOF'
+          pluginManagement {
+            repositories { google(); mavenCentral(); gradlePluginPortal() }
+          }
+          dependencyResolutionManagement {
+            repositories { google(); mavenCentral() }
+          }
+          rootProject.name = "PrivChro"
+          include ':app'
+          EOF
+
+          cat > $A/build.gradle <<'EOF'
+          plugins {
+            id 'com.android.application' version '8.1.4' apply false
+          }
+          EOF
+
+          cat > $A/gradle.properties <<'EOF'
+          org.gradle.jvmargs=-Xmx2g
+          android.useAndroidX=false
+          EOF
+
+          cat > $A/app/build.gradle <<'EOF'
+          plugins { id 'com.android.application' }
+          android {
+            namespace 'com.privchro.app'
+            compileSdk 34
+            defaultConfig {
+              applicationId "com.privchro.app"
+              minSdk 24
+              targetSdk 34
+              versionCode 1
+              versionName "1.0"
+            }
+            compileOptions {
+              sourceCompatibility JavaVersion.VERSION_17
+              targetCompatibility JavaVersion.VERSION_17
+            }
+          }
+          EOF
+
+          cat > $M/AndroidManifest.xml <<'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+            <uses-permission android:name="android.permission.INTERNET"/>
+            <application
+              android:label="PrivChro"
+              android:icon="@mipmap/ic_launcher"
+              android:allowBackup="false"
+              android:usesCleartextTraffic="true"
+              android:theme="@android:style/Theme.DeviceDefault.NoActionBar">
+              <activity
+                android:name=".MainActivity"
+                android:exported="true"
+                android:windowSoftInputMode="adjustResize"
+                android:configChanges="orientation|screenSize|keyboardHidden|screenLayout|smallestScreenSize|uiMode">
+                <intent-filter>
+                  <action android:name="android.intent.action.MAIN"/>
+                  <category android:name="android.intent.category.LAUNCHER"/>
+                </intent-filter>
+              </activity>
+            </application>
+          </manifest>
+          EOF
+
+          # ---- native browser (Chromium WebView) ----
+          cat > $M/java/com/privchro/app/MainActivity.java <<'EOF'
+          package com.privchro.app;
+
+          import android.app.Activity;
+          import android.content.SharedPreferences;
+          import android.graphics.Bitmap;
+          import android.graphics.Color;
+          import android.os.Bundle;
+          import android.view.View;
+          import android.view.WindowManager;
+          import android.webkit.CookieManager;
+          import android.webkit.GeolocationPermissions;
+          import android.webkit.JavascriptInterface;
+          import android.webkit.WebChromeClient;
+          import android.webkit.WebResourceRequest;
+          import android.webkit.WebResourceResponse;
+          import android.webkit.WebSettings;
+          import android.webkit.WebStorage;
+          import android.webkit.WebView;
+          import android.webkit.WebViewClient;
+          import android.widget.LinearLayout;
+          import org.json.JSONObject;
+          import java.io.ByteArrayInputStream;
+          import java.net.URLEncoder;
+          import java.util.HashMap;
+          import java.util.Map;
+
+          public class MainActivity extends Activity {
+            WebView ui, web;
+            LinearLayout root;
+            SharedPreferences sp;
+            boolean full = true;
+            int barDp = 136;
+            boolean js = true, tp = true, clr = true, trk = true, https = false, shot = true;
+
+            static final String[] BLOCK = {
+              "doubleclick.net", "googlesyndication.com", "google-analytics.com", "googletagmanager.com",
+              "googleadservices.com", "googletagservices.com", "adservice.google.com", "facebook.net",
+              "adnxs.com", "taboola.com", "outbrain.com", "scorecardresearch.com", "hotjar.com",
+              "criteo.com", "criteo.net", "amazon-adsystem.com", "adsrvr.org", "quantserve.com",
+              "mixpanel.com", "segment.io", "segment.com", "moatads.com", "mc.yandex.ru",
+              "ads.twitter.com", "analytics.twitter.com", "analytics.tiktok.com", "app-measurement.com",
+              "pubmatic.com", "rubiconproject.com", "openx.net", "casalemedia.com", "bat.bing.com",
+              "clarity.ms", "krxd.net", "bluekai.com", "demdex.net", "everesttech.net", "adform.net",
+              "smartadserver.com", "2mdn.net", "advertising.com", "yieldmo.com", "sharethrough.com"
+            };
+
+            void loadPrefs() {
+              try {
+                JSONObject o = new JSONObject(sp.getString("p", "{}"));
+                js = o.optBoolean("js", true);
+                tp = o.optBoolean("tp", true);
+                clr = o.optBoolean("clr", true);
+                trk = o.optBoolean("trk", true);
+                https = o.optBoolean("https", false);
+                shot = o.optBoolean("shot", true);
+              } catch (Exception e) { }
+            }
+
+            @Override
+            protected void onCreate(Bundle b) {
+              super.onCreate(b);
+              sp = getSharedPreferences("privchro", MODE_PRIVATE);
+              loadPrefs();
+              getWindow().setStatusBarColor(Color.parseColor("#10222e"));
+              getWindow().setNavigationBarColor(Color.parseColor("#0a1620"));
+              applyShot();
+
+              root = new LinearLayout(this);
+              root.setOrientation(LinearLayout.VERTICAL);
+              root.setBackgroundColor(Color.parseColor("#0a1620"));
+
+              ui = new WebView(this);
+              web = new WebView(this);
+              setupUi();
+              setupWeb();
+              root.addView(ui);
+              root.addView(web);
+              setContentView(root);
+              layout();
+
+              wipeAll();
+              ui.loadUrl("file:///android_asset/index.html");
+            }
+
+            void setupUi() {
+              WebSettings s = ui.getSettings();
+              s.setJavaScriptEnabled(true);
+              s.setDomStorageEnabled(false);
+              s.setBuiltInZoomControls(false);
+              ui.setBackgroundColor(Color.parseColor("#0a1620"));
+              ui.setOverScrollMode(View.OVER_SCROLL_NEVER);
+              ui.addJavascriptInterface(new Bridge(), "Android");
+              ui.setWebViewClient(new WebViewClient());
+            }
+
+            void setupWeb() {
+              web.setBackgroundColor(Color.WHITE);
+              applyWebSettings();
+              web.setWebViewClient(new WebViewClient() {
+                @Override
+                public WebResourceResponse shouldInterceptRequest(WebView v, WebResourceRequest r) {
+                  if (trk && !r.isForMainFrame() && r.getUrl() != null && blocked(r.getUrl().getHost())) {
+                    return new WebResourceResponse("text/plain", "utf-8", new ByteArrayInputStream(new byte[0]));
+                  }
+                  return null;
+                }
+
+                @Override
+                public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest r) {
+                  String u = r.getUrl().toString();
+                  if (https && u.startsWith("http://")) {
+                    v.loadUrl("https://" + u.substring(7), hdr());
+                    return true;
+                  }
+                  // only http/https; other schemes (intent:, market: ...) are blocked
+                  return !(u.startsWith("http://") || u.startsWith("https://"));
+                }
+
+                @Override
+                public void onPageStarted(WebView v, String url, Bitmap f) { push(url); }
+
+                @Override
+                public void onPageFinished(WebView v, String url) { push(url); }
+              });
+              web.setWebChromeClient(new WebChromeClient() {
+                @Override
+                public void onProgressChanged(WebView v, int p) {
+                  ui.evaluateJavascript("onProgress(" + p + ")", null);
+                }
+
+                @Override
+                public void onGeolocationPermissionsShowPrompt(String o, GeolocationPermissions.Callback c) {
+                  c.invoke(o, false, false);
+                }
+              });
+            }
+
+            void applyWebSettings() {
+              WebSettings s = web.getSettings();
+              s.setJavaScriptEnabled(js);
+              s.setDomStorageEnabled(js);
+              s.setCacheMode(WebSettings.LOAD_NO_CACHE);
+              s.setSaveFormData(false);
+              s.setGeolocationEnabled(false);
+              s.setAllowFileAccess(false);
+              s.setAllowContentAccess(false);
+              s.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
+              s.setJavaScriptCanOpenWindowsAutomatically(false);
+              s.setSupportMultipleWindows(false);
+              s.setBuiltInZoomControls(true);
+              s.setDisplayZoomControls(false);
+              s.setUseWideViewPort(true);
+              s.setLoadWithOverviewMode(true);
+              CookieManager cm = CookieManager.getInstance();
+              cm.setAcceptCookie(true);
+              cm.setAcceptThirdPartyCookies(web, !tp);
+            }
+
+            void applyShot() {
+              if (shot) getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
+              else getWindow().clearFlags(WindowManager.LayoutParams.FLAG_SECURE);
+            }
+
+            boolean blocked(String h) {
+              if (h == null) return false;
+              for (String d : BLOCK) {
+                if (h.equals(d) || h.endsWith("." + d)) return true;
+              }
+              return false;
+            }
+
+            Map<String, String> hdr() {
+              Map<String, String> h = new HashMap<>();
+              h.put("DNT", "1");
+              h.put("Sec-GPC", "1");
+              return h;
+            }
+
+            void push(String url) {
+              ui.evaluateJavascript("onUrl(" + JSONObject.quote(url) + ")", null);
+            }
+
+            String search(String q) {
+              try {
+                return "https://duckduckgo.com/?q=" + URLEncoder.encode(q, "UTF-8");
+              } catch (Exception e) {
+                return "https://duckduckgo.com";
+              }
+            }
+
+            String norm(String u) {
+              u = u.trim();
+              if (u.matches("^[a-zA-Z][a-zA-Z0-9+.\\-]*://.*")) {
+                if (u.startsWith("http://") || u.startsWith("https://")) return u;
+                return search(u);
+              }
+              if (!u.contains(" ") && (u.contains(".") || u.startsWith("localhost"))) return "https://" + u;
+              return search(u);
+            }
+
+            void load(String raw) {
+              String u = norm(raw);
+              if (https && u.startsWith("http://")) u = "https://" + u.substring(7);
+              full = false;
+              layout();
+              web.loadUrl(u, hdr());
+            }
+
+            void layout() {
+              float d = getResources().getDisplayMetrics().density;
+              LinearLayout.LayoutParams a;
+              if (full) {
+                a = new LinearLayout.LayoutParams(-1, 0, 1f);
+                web.setVisibility(View.GONE);
+              } else {
+                a = new LinearLayout.LayoutParams(-1, (int) (barDp * d), 0f);
+                web.setVisibility(View.VISIBLE);
+              }
+              ui.setLayoutParams(a);
+              web.setLayoutParams(new LinearLayout.LayoutParams(-1, 0, 1f));
+              root.requestLayout();
+            }
+
+            void wipeAll() {
+              try {
+                CookieManager cm = CookieManager.getInstance();
+                cm.removeAllCookies(null);
+                cm.flush();
+                WebStorage.getInstance().deleteAllData();
+                GeolocationPermissions.getInstance().clearAll();
+                if (web != null) {
+                  web.clearCache(true);
+                  web.clearHistory();
+                  web.clearFormData();
+                }
+              } catch (Exception e) { }
+            }
+
+            class Bridge {
+              @JavascriptInterface
+              public void go(final String u) { runOnUiThread(() -> load(u)); }
+
+              @JavascriptInterface
+              public void back() { runOnUiThread(() -> { if (web.canGoBack()) web.goBack(); }); }
+
+              @JavascriptInterface
+              public void forward() { runOnUiThread(() -> { if (web.canGoForward()) web.goForward(); }); }
+
+              @JavascriptInterface
+              public void reload() { runOnUiThread(() -> web.reload()); }
+
+              @JavascriptInterface
+              public void setFull(final boolean f, final int dp) {
+                runOnUiThread(() -> {
+                  full = f;
+                  if (dp > 0) barDp = dp;
+                  layout();
+                });
+              }
+
+              @JavascriptInterface
+              public String getPrefs() { return sp.getString("p", "{}"); }
+
+              @JavascriptInterface
+              public void savePrefs(final String json) {
+                runOnUiThread(() -> {
+                  sp.edit().putString("p", json).apply();
+                  loadPrefs();
+                  applyWebSettings();
+                  applyShot();
+                  if (web.getUrl() != null) web.reload();
+                });
+              }
+
+              @JavascriptInterface
+              public void wipe() { runOnUiThread(() -> wipeAll()); }
+            }
+
+            @Override
+            public void onBackPressed() {
+              if (!full) {
+                if (web.canGoBack()) web.goBack();
+                else ui.evaluateJavascript("showHome()", null);
+                return;
+              }
+              ui.evaluateJavascript("onBackKey()", v -> {
+                if (v != null && v.contains("exit")) finish();
+              });
+            }
+
+            @Override
+            protected void onDestroy() {
+              if (clr) wipeAll();
+              if (web != null) web.destroy();
+              if (ui != null) ui.destroy();
+              super.onDestroy();
+            }
+          }
+          EOF
+
+      - name: Build APK
+        run: |
+          cd android
+          gradle assembleDebug --no-daemon
+
+      - name: Rename APK
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk PrivChroV1.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PrivChroV1
+          path: PrivChroV1.apk
+
+      - name: Release V1
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: V1
+          name: PrivChro V1
+          body: PrivChro V1 - Chromium (Android WebView) esasli mexfi brauzer
+          files: PrivChroV1.apk
