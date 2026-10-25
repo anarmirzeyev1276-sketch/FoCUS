@@ -30,7 +30,8 @@ jobs:
 
       - name: Generate Android project
         run: |
-          command -v convert >/dev/null || sudo apt-get install -y imagemagick
+          sudo apt-get update
+          sudo apt-get install -y imagemagick
           A=android
           M=$A/app/src/main
           mkdir -p $M/java/com/privchro/app $M/assets
@@ -435,3 +436,4 @@ jobs:
           name: PrivChro V1
           body: PrivChro V1 - Chromium (Android WebView) esasli mexfi brauzer
           files: PrivChroV1.apk
+          
