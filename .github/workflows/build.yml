@@ -1,4 +1,4 @@
-name: Build PrivChro APK
+name: FoCUS Build
 
 on:
   push:
@@ -422,18 +422,18 @@ jobs:
           gradle assembleDebug --no-daemon
 
       - name: Rename APK
-        run: cp android/app/build/outputs/apk/debug/app-debug.apk PrivChroV1.apk
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk FoCUSV1.apk
 
       - uses: actions/upload-artifact@v4
         with:
-          name: PrivChroV1
-          path: PrivChroV1.apk
+          name: FoCUSV1
+          path: FoCUSV1.apk
 
       - name: Release V1
         uses: softprops/action-gh-release@v2
         with:
           tag_name: V1
-          name: PrivChro V1
-          body: PrivChro V1 - Chromium (Android WebView) esasli mexfi brauzer
-          files: PrivChroV1.apk
+          name: FoCUS V1
+          body: FoCUS! Chromium - Gamer,Private and FoCUS Browser!
+          files: FoCUSV1.apk
           
