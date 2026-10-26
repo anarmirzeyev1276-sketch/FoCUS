@@ -56,7 +56,7 @@ jobs:
           dependencyResolutionManagement {
             repositories { google(); mavenCentral() }
           }
-          rootProject.name = "PrivChro"
+          rootProject.name = "FoCUS"
           include ':app'
           EOF
 
@@ -74,10 +74,10 @@ jobs:
           cat > $A/app/build.gradle <<'EOF'
           plugins { id 'com.android.application' }
           android {
-            namespace 'com.privchro.app'
+            namespace 'com.FoCUS.app'
             compileSdk 34
             defaultConfig {
-              applicationId "com.privchro.app"
+              applicationId "com.FoCUS.app"
               minSdk 24
               targetSdk 34
               versionCode 1
@@ -116,7 +116,7 @@ jobs:
 
           # ---- native browser (Chromium WebView) ----
           cat > $M/java/com/privchro/app/MainActivity.java <<'EOF'
-          package com.privchro.app;
+          package com.FoCUS.app;
 
           import android.app.Activity;
           import android.content.SharedPreferences;
