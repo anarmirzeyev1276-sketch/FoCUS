@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>FoCUS</title>
+<style>
+:root{--bg:#0a1620;--card:#10222e;--line:#1d3a4a;--teal:#35d0d6;--amber:#f6b400;--t:#e6f1f2;--m:#8aa6ae}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--t);font-family:"Segoe UI",Roboto,system-ui,sans-serif;overflow:hidden}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
+[hidden]{display:none!important}
+#app{height:100%;overflow:hidden}
+main,#set,#tabs{overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y;-webkit-overflow-scrolling:touch}
+
+/* ---------- splash ---------- */
+#splash{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;padding:56px 24px 40px;
+  background:radial-gradient(ellipse at 50% 62%,#12384a 0%,var(--bg) 62%)}
+.brand{margin:0;font-size:46px;font-weight:800;letter-spacing:.5px;color:var(--t)}
+.brand i{font-style:normal;color:var(--amber)}
+.tag{margin:6px 0 0;color:var(--m);font-size:16px}
+.stage{flex:1;display:flex;align-items:center;justify-content:center;width:100%}
+.ring{position:relative;width:210px;height:210px;display:grid;place-items:center}
+.ring::before{content:"";position:absolute;inset:-14px;border-radius:50%;border:2px dashed var(--line);animation:spin 28s linear infinite}
+.ring img{width:190px;height:190px;border-radius:50%;box-shadow:0 0 0 6px var(--card),0 18px 60px rgba(53,208,214,.28)}
+@keyframes spin{to{transform:rotate(360deg)}}
+.enter{width:100%;max-width:320px;padding:16px;border-radius:14px;background:var(--amber);color:#1b1400;font-size:18px;font-weight:700}
+.enter:active{transform:scale(.98)}
+.ver{margin:14px 0 0;color:var(--m);font-size:13px}
+
+/* ---------- toolbar ---------- */
+#bar{position:relative;height:136px;padding:6px 10px 8px;background:var(--card);border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:4px}
+.r1,.r3{height:36px;display:flex;align-items:center;gap:8px}
+.r1 img{width:28px;height:28px;border-radius:50%}
+.r1 b{font-size:17px;letter-spacing:.3px}
+.r1 b i{font-style:normal;color:var(--amber)}
+.sp{flex:1}
+.ib{width:40px;height:34px;border-radius:10px;font-size:18px;display:grid;place-items:center;background:#0d1c27}
+.ib:active{background:var(--line)}
+.r2{height:42px;display:flex;align-items:center;gap:8px;padding:0 6px 0 12px;border-radius:21px;background:#07121a;border:1px solid var(--line)}
+.r2:focus-within{border-color:var(--teal)}
+.r2 input{flex:1;min-width:0;height:100%;border:0;outline:0;background:none;color:var(--t);font-size:16px}
+.r2 input::placeholder{color:var(--m)}
+.go{width:34px;height:34px;border-radius:50%;background:var(--teal);color:#06242a;font-weight:800;font-size:17px}
+.r3{justify-content:space-between}
+.r3 .ib{flex:1}
+#pg{position:absolute;left:0;bottom:-1px;height:3px;width:0;background:var(--amber);transition:width .2s}
+
+/* ---------- home ---------- */
+main{height:calc(100% - 136px);overflow:auto;padding:26px 20px 30px;text-align:center}
+main .big{width:96px;height:96px;border-radius:50%;box-shadow:0 0 0 5px var(--card),0 10px 36px rgba(53,208,214,.25)}
+main h2{margin:16px 0 4px;font-size:26px}
+main h2 i{font-style:normal;color:var(--amber)}
+main p{margin:0 0 22px;color:var(--m)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:26px}
+.chip{display:flex;align-items:center;gap:6px;padding:7px 12px;border-radius:999px;font-size:13px;border:1px solid var(--line);background:var(--card)}
+.chip b{font-size:12px}
+.chip.on{border-color:#1f6e73}.chip.on b{color:var(--teal)}
+.chip.off{color:var(--m)}.chip.off b{color:#d0584f}
+.links{display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:360px;margin:0 auto}
+.links button{padding:14px 8px;border-radius:12px;background:var(--card);border:1px solid var(--line);font-weight:600}
+.links button:active{border-color:var(--teal)}
+
+/* ---------- settings ---------- */
+#set{height:calc(100% - 136px);overflow:auto;padding:16px 16px 40px}
+.head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.head h3{margin:0;font-size:22px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 4px;border-bottom:1px solid var(--line);font-size:16px}
+.row input{position:absolute;opacity:0;pointer-events:none}
+.row u{flex:none;position:relative;width:46px;height:26px;border-radius:13px;background:#27414f;transition:background .15s}
+.row u::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .15s}
+.row input:checked+u{background:var(--teal)}
+.row input:checked+u::after{transform:translateX(20px)}
+[dir=rtl] .row input:checked+u::after{transform:translateX(-20px)}
+[dir=rtl] .row u::after{left:auto;right:3px}
+select{width:100%;margin:6px 0 16px;padding:13px;border-radius:12px;background:var(--card);color:var(--t);border:1px solid var(--line);font-size:16px}
+.lbl{display:block;margin-top:14px;color:var(--m);font-size:14px}
+.wipe{width:100%;margin-top:22px;padding:14px;border-radius:12px;background:#3a1a1a;color:#ff9b93;border:1px solid #6a2b2b;font-weight:700}
+
+.ver-b{display:inline-block;margin-inline-start:6px;padding:2px 7px;border-radius:8px;background:var(--amber);color:#1b1400;font-size:11px;font-weight:800;vertical-align:middle;letter-spacing:.3px}
+.brand .ver-b{font-size:14px;padding:3px 9px;margin-inline-start:10px}
+main h2 .ver-b{font-size:12px}
+.tcb span{display:grid;place-items:center;min-width:22px;height:22px;padding:0 4px;border:2px solid var(--t);border-radius:6px;font-size:12px;font-weight:700}
+#tabs{height:calc(100% - 136px);overflow:auto;padding:16px 16px 30px}
+.tab{display:flex;align-items:center;gap:10px;padding:10px 10px 10px 14px;margin-bottom:10px;border-radius:12px;background:var(--card);border:1px solid var(--line)}
+.tab.cur{border-color:var(--teal)}
+.tab .tt{flex:1;min-width:0;text-align:start}
+.tab .tt b{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tab .tt small{display:block;color:var(--m);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;direction:ltr;text-align:start}
+.btn2{width:100%;padding:14px;border-radius:12px;font-weight:700;margin-top:6px}
+.nt{background:var(--teal);color:#06242a}
+.ca{background:#3a1a1a;color:#ff9b93;border:1px solid #6a2b2b}
+.pinbtn{flex:none;padding:9px 14px;border-radius:10px;background:var(--card);border:1px solid var(--teal);color:var(--teal);font-weight:700}
+#kp{position:fixed;inset:0;z-index:99;background:radial-gradient(ellipse at 50% 30%,#12384a 0%,var(--bg) 70%);display:flex;flex-direction:column;align-items:center;padding:44px 24px 24px;overflow:auto}
+#kpx{position:absolute;top:14px;inset-inline-end:14px}
+#kp img{width:84px;height:84px;border-radius:50%;box-shadow:0 0 0 5px var(--card)}
+#kpt{margin:18px 0 6px;font-size:20px;font-weight:700;text-align:center}
+#kpe{min-height:22px;color:#ff9b93;font-size:14px}
+.dots{display:flex;gap:14px;margin:10px 0 22px}
+.dots i{width:14px;height:14px;border-radius:50%;border:2px solid var(--teal)}
+.dots i.f{background:var(--teal)}
+.pad{display:grid;grid-template-columns:repeat(3,72px);gap:12px}
+.pad button{height:62px;border-radius:50%;background:var(--card);border:1px solid var(--line);font-size:24px;font-weight:600}
+.pad button:active{background:var(--line)}
+.shake{animation:sh .35s}
+@keyframes sh{20%{transform:translateX(-10px)}60%{transform:translateX(10px)}}
+</style>
+</head>
+<body>
+
+<div id="splash">
+  <h1 class="brand">Fo<i>CUS</i><span class="ver-b">V1.1</span></h1>
+  <p class="tag" data-i="0"></p>
+  <div class="stage"><div class="ring"><img src="logo.png" alt="FoCUS"></div></div>
+  <button class="enter" id="enter" data-i="1"></button>
+  <p class="ver">V1.1 &middot; Chromium</p>
+</div>
+
+<div id="app" hidden>
+  <header id="bar">
+    <div class="r1">
+      <img src="logo.png" alt=""><b>Fo<i>CUS</i></b><span class="ver-b">V1.1</span><span class="sp"></span>
+      <button class="ib" onclick="openSettings()" aria-label="Settings">&#9881;</button>
+    </div>
+    <div class="r2">
+      <span>&#128274;</span>
+      <input id="url" dir="ltr" type="text" inputmode="url" autocapitalize="off" autocomplete="off" spellcheck="false">
+      <button class="go" onclick="go()">&#10140;</button>
+    </div>
+    <div class="r3">
+      <button class="ib" onclick="Android.back()" aria-label="Back">&#9664;</button>
+      <button class="ib" onclick="Android.forward()" aria-label="Forward">&#9654;</button>
+      <button class="ib" onclick="Android.reload()" aria-label="Reload">&#10227;</button>
+      <button class="ib" onclick="showHome()" aria-label="Home">&#8962;</button>
+      <button class="ib tcb" onclick="openTabs()" aria-label="Tabs"><span id="tc">1</span></button>
+    </div>
+    <i id="pg"></i>
+  </header>
+
+  <main id="home">
+    <img class="big" src="logo.png" alt="">
+    <h2>Fo<i>CUS</i><span class="ver-b">V1.1</span></h2>
+    <p data-i="0"></p>
+    <div class="chips" id="chips"></div>
+    <div class="links">
+      <button onclick="go('https://duckduckgo.com')">DuckDuckGo</button>
+      <button onclick="go('https://www.startpage.com')">Startpage</button>
+      <button onclick="go('https://search.brave.com')">Brave Search</button>
+      <button onclick="go('https://wikipedia.org')">Wikipedia</button>
+    </div>
+  </main>
+
+  <section id="set" hidden>
+    <div class="head"><h3 data-i="3"></h3><button class="ib" onclick="closeSettings()">&#10005;</button></div>
+    <label class="lbl" data-i="4"></label>
+    <select id="lang"></select>
+    <div id="opts"></div>
+    <div class="row"><span data-i="15"></span><button class="pinbtn" id="pinbtn"></button></div>
+    <button class="wipe" id="wipe" data-i="10"></button>
+  </section>
+
+  <section id="tabs" hidden>
+    <div class="head"><h3 data-i="12"></h3><button class="ib" onclick="closeTabs()">&#10005;</button></div>
+    <div id="tlist"></div>
+    <button class="btn2 nt" onclick="newTabBtn()" data-i="13"></button>
+    <button class="btn2 ca" onclick="closeAllTabs()" data-i="14"></button>
+  </section>
+</div>
+
+<div id="kp" hidden>
+  <button class="ib" id="kpx" onclick="closeKp()">&#10005;</button>
+  <img src="logo.png" alt="">
+  <div id="kpt"></div>
+  <div id="kpe"></div>
+  <div class="dots" id="dots"></div>
+  <div class="pad" id="pad"></div>
+</div>
+
+<script>
+/* order: tag|enter|search|settings|language|js|tp|clr|trk|https|wipe|shot|tabs|newtab|closeall|pin|setpin|enterpin|wrongpin|removepin */
+const LANGS=[
+["az","Azərbaycan","Məxfi brauzer|Daxil ol|Axtar və ya ünvan yaz|Ayarlar|Dil|JavaScript|3-cü tərəf cookie-ləri blokla|Çıxanda hər şeyi sil|İzləyiciləri və reklamları blokla|Yalnız HTTPS|Datanı indi təmizlə|Ekran görüntüsündən qoruma|Tablar|Yeni tab|Bütün tabları bağla|PIN kilidi|PIN təyin et|PIN daxil et|PIN səhvdir|PIN-i sil"],
+["en","English","Private browser|Enter|Search or enter address|Settings|Language|JavaScript|Block third-party cookies|Delete everything on exit|Block trackers & ads|HTTPS only|Clear data now|Screenshot protection|Tabs|New tab|Close all tabs|PIN lock|Set PIN|Enter PIN|Wrong PIN|Remove PIN"],
+["tr","Türkçe","Gizli tarayıcı|Giriş|Ara veya adres yaz|Ayarlar|Dil|JavaScript|Üçüncü taraf çerezlerini engelle|Çıkışta her şeyi sil|İzleyicileri ve reklamları engelle|Yalnızca HTTPS|Verileri şimdi temizle|Ekran görüntüsü koruması|Sekmeler|Yeni sekme|Tüm sekmeleri kapat|PIN kilidi|PIN belirle|PIN gir|Yanlış PIN|PIN'i kaldır"],
+["ru","Русский","Приватный браузер|Войти|Поиск или адрес|Настройки|Язык|JavaScript|Блокировать сторонние cookie|Удалять всё при выходе|Блокировать трекеры и рекламу|Только HTTPS|Очистить данные сейчас|Защита от скриншотов|Вкладки|Новая вкладка|Закрыть все вкладки|PIN-код|Задать PIN|Введите PIN|Неверный PIN|Удалить PIN"],
+["es","Español","Navegador privado|Entrar|Busca o escribe una dirección|Ajustes|Idioma|JavaScript|Bloquear cookies de terceros|Borrar todo al salir|Bloquear rastreadores y anuncios|Solo HTTPS|Borrar datos ahora|Protección de capturas|Pestañas|Nueva pestaña|Cerrar todas las pestañas|Bloqueo con PIN|Crear PIN|Introduce el PIN|PIN incorrecto|Quitar PIN"],
+["fr","Français","Navigateur privé|Entrer|Rechercher ou saisir une adresse|Paramètres|Langue|JavaScript|Bloquer les cookies tiers|Tout effacer à la sortie|Bloquer pisteurs et pubs|HTTPS uniquement|Effacer les données|Protection des captures|Onglets|Nouvel onglet|Fermer tous les onglets|Verrouillage par PIN|Définir un PIN|Saisir le PIN|PIN incorrect|Supprimer le PIN"],
+["de","Deutsch","Privater Browser|Eintreten|Suchen oder Adresse eingeben|Einstellungen|Sprache|JavaScript|Drittanbieter-Cookies blockieren|Beim Beenden alles löschen|Tracker und Werbung blockieren|Nur HTTPS|Daten jetzt löschen|Screenshot-Schutz|Tabs|Neuer Tab|Alle Tabs schließen|PIN-Sperre|PIN festlegen|PIN eingeben|Falsche PIN|PIN entfernen"],
+["it","Italiano","Browser privato|Entra|Cerca o digita un indirizzo|Impostazioni|Lingua|JavaScript|Blocca i cookie di terze parti|Elimina tutto all'uscita|Blocca tracker e pubblicità|Solo HTTPS|Cancella i dati ora|Protezione screenshot|Schede|Nuova scheda|Chiudi tutte le schede|Blocco con PIN|Imposta PIN|Inserisci PIN|PIN errato|Rimuovi PIN"],
+["pt","Português","Navegador privado|Entrar|Pesquise ou digite o endereço|Configurações|Idioma|JavaScript|Bloquear cookies de terceiros|Apagar tudo ao sair|Bloquear rastreadores e anúncios|Somente HTTPS|Limpar dados agora|Proteção de capturas|Abas|Nova aba|Fechar todas as abas|Bloqueio por PIN|Definir PIN|Digite o PIN|PIN incorreto|Remover PIN"],
+["ar","العربية","متصفح خاص|دخول|ابحث أو اكتب عنوانًا|الإعدادات|اللغة|JavaScript|حظر ملفات تعريف الارتباط للأطراف الثالثة|حذف كل شيء عند الخروج|حظر المتتبعات والإعلانات|HTTPS فقط|مسح البيانات الآن|حماية لقطات الشاشة|علامات التبويب|علامة تبويب جديدة|إغلاق كل علامات التبويب|قفل PIN|تعيين PIN|أدخل PIN|PIN خاطئ|إزالة PIN"],
+["fa","فارسی","مرورگر خصوصی|ورود|جستجو یا نوشتن آدرس|تنظیمات|زبان|JavaScript|مسدود کردن کوکی‌های شخص ثالث|حذف همه چیز هنگام خروج|مسدود کردن ردیاب‌ها و تبلیغات|فقط HTTPS|پاک‌سازی داده‌ها|محافظت از اسکرین‌شات|زبانه‌ها|زبانه جدید|بستن همه زبانه‌ها|قفل PIN|تنظیم PIN|PIN را وارد کنید|PIN اشتباه است|حذف PIN"],
+["zh","中文","隐私浏览器|进入|搜索或输入网址|设置|语言|JavaScript|阻止第三方 Cookie|退出时全部删除|拦截跟踪器和广告|仅 HTTPS|立即清除数据|截图保护|标签页|新标签页|关闭所有标签页|PIN 锁|设置 PIN|输入 PIN|PIN 错误|移除 PIN"],
+["ja","日本語","プライベートブラウザ|入る|検索またはアドレス入力|設定|言語|JavaScript|サードパーティCookieをブロック|終了時にすべて削除|トラッカーと広告をブロック|HTTPSのみ|今すぐデータ消去|スクリーンショット保護|タブ|新しいタブ|すべてのタブを閉じる|PINロック|PINを設定|PINを入力|PINが違います|PINを削除"],
+["ko","한국어","프라이빗 브라우저|입장|검색 또는 주소 입력|설정|언어|JavaScript|서드파티 쿠키 차단|종료 시 모두 삭제|추적기 및 광고 차단|HTTPS만|지금 데이터 삭제|스크린샷 방지|탭|새 탭|모든 탭 닫기|PIN 잠금|PIN 설정|PIN 입력|PIN이 틀렸습니다|PIN 삭제"],
+["hi","हिन्दी","निजी ब्राउज़र|प्रवेश करें|खोजें या पता लिखें|सेटिंग्स|भाषा|JavaScript|थर्ड-पार्टी कुकीज़ ब्लॉक करें|बाहर निकलते समय सब हटाएं|ट्रैकर और विज्ञापन ब्लॉक करें|केवल HTTPS|डेटा अभी साफ़ करें|स्क्रीनशॉट सुरक्षा|टैब|नया टैब|सभी टैब बंद करें|पिन लॉक|पिन सेट करें|पिन दर्ज करें|गलत पिन|पिन हटाएं"],
+["uk","Українська","Приватний браузер|Увійти|Пошук або адреса|Налаштування|Мова|JavaScript|Блокувати сторонні cookie|Видаляти все при виході|Блокувати трекери та рекламу|Лише HTTPS|Очистити дані зараз|Захист від скріншотів|Вкладки|Нова вкладка|Закрити всі вкладки|PIN-код|Задати PIN|Введіть PIN|Невірний PIN|Видалити PIN"],
+["pl","Polski","Przeglądarka prywatna|Wejdź|Szukaj lub wpisz adres|Ustawienia|Język|JavaScript|Blokuj pliki cookie stron trzecich|Usuń wszystko przy wyjściu|Blokuj śledzące i reklamy|Tylko HTTPS|Wyczyść dane teraz|Ochrona zrzutów ekranu|Karty|Nowa karta|Zamknij wszystkie karty|Blokada PIN|Ustaw PIN|Wpisz PIN|Zły PIN|Usuń PIN"],
+["nl","Nederlands","Privébrowser|Binnengaan|Zoek of voer adres in|Instellingen|Taal|JavaScript|Cookies van derden blokkeren|Alles wissen bij afsluiten|Trackers en advertenties blokkeren|Alleen HTTPS|Gegevens nu wissen|Screenshotbeveiliging|Tabbladen|Nieuw tabblad|Alle tabbladen sluiten|PIN-vergrendeling|PIN instellen|Voer PIN in|Onjuiste PIN|PIN verwijderen"],
+["sv","Svenska","Privat webbläsare|Gå in|Sök eller ange adress|Inställningar|Språk|JavaScript|Blockera tredjepartscookies|Radera allt vid avslut|Blockera spårare och annonser|Endast HTTPS|Rensa data nu|Skärmdumpsskydd|Flikar|Ny flik|Stäng alla flikar|PIN-lås|Ange PIN|Skriv PIN|Fel PIN|Ta bort PIN"],
+["no","Norsk","Privat nettleser|Gå inn|Søk eller skriv adresse|Innstillinger|Språk|JavaScript|Blokker tredjepartsinformasjonskapsler|Slett alt ved avslutning|Blokker sporere og annonser|Kun HTTPS|Tøm data nå|Skjermbildebeskyttelse|Faner|Ny fane|Lukk alle faner|PIN-lås|Angi PIN|Skriv inn PIN|Feil PIN|Fjern PIN"],
+["da","Dansk","Privat browser|Gå ind|Søg eller skriv adresse|Indstillinger|Sprog|JavaScript|Bloker tredjepartscookies|Slet alt ved afslutning|Bloker sporing og reklamer|Kun HTTPS|Ryd data nu|Skærmbilledebeskyttelse|Faner|Ny fane|Luk alle faner|PIN-lås|Indstil PIN|Indtast PIN|Forkert PIN|Fjern PIN"],
+["fi","Suomi","Yksityinen selain|Sisään|Hae tai kirjoita osoite|Asetukset|Kieli|JavaScript|Estä kolmannen osapuolen evästeet|Poista kaikki poistuttaessa|Estä seuraimet ja mainokset|Vain HTTPS|Tyhjennä tiedot nyt|Kuvakaappaussuojaus|Välilehdet|Uusi välilehti|Sulje kaikki välilehdet|PIN-lukitus|Aseta PIN|Anna PIN|Väärä PIN|Poista PIN"],
+["cs","Čeština","Soukromý prohlížeč|Vstoupit|Hledat nebo zadat adresu|Nastavení|Jazyk|JavaScript|Blokovat cookies třetích stran|Při ukončení vše smazat|Blokovat sledovače a reklamy|Pouze HTTPS|Smazat data hned|Ochrana snímků obrazovky|Karty|Nová karta|Zavřít všechny karty|Zámek PIN|Nastavit PIN|Zadejte PIN|Špatný PIN|Odebrat PIN"],
+["ro","Română","Browser privat|Intră|Caută sau scrie adresa|Setări|Limbă|JavaScript|Blochează cookie-urile terțe|Șterge tot la ieșire|Blochează trackerele și reclamele|Doar HTTPS|Șterge datele acum|Protecție capturi de ecran|File|Filă nouă|Închide toate filele|Blocare cu PIN|Setează PIN|Introdu PIN|PIN greșit|Elimină PIN"],
+["hu","Magyar","Privát böngésző|Belépés|Keresés vagy cím megadása|Beállítások|Nyelv|JavaScript|Harmadik féltől származó sütik tiltása|Kilépéskor minden törlése|Követők és hirdetések tiltása|Csak HTTPS|Adatok törlése most|Képernyőkép-védelem|Lapok|Új lap|Összes lap bezárása|PIN-zár|PIN beállítása|Adja meg a PIN-t|Hibás PIN|PIN törlése"],
+["el","Ελληνικά","Ιδιωτικό πρόγραμμα περιήγησης|Είσοδος|Αναζήτηση ή διεύθυνση|Ρυθμίσεις|Γλώσσα|JavaScript|Αποκλεισμός cookies τρίτων|Διαγραφή όλων κατά την έξοδο|Αποκλεισμός ιχνηλατών και διαφημίσεων|Μόνο HTTPS|Εκκαθάριση δεδομένων τώρα|Προστασία στιγμιότυπων|Καρτέλες|Νέα καρτέλα|Κλείσιμο όλων των καρτελών|Κλείδωμα PIN|Ορισμός PIN|Εισαγωγή PIN|Λάθος PIN|Αφαίρεση PIN"],
+["he","עברית","דפדפן פרטי|כניסה|חפש או הקלד כתובת|הגדרות|שפה|JavaScript|חסום עוגיות צד שלישי|מחק הכול ביציאה|חסום עוקבים ופרסומות|HTTPS בלבד|נקה נתונים עכשיו|הגנת צילום מסך|לשוניות|לשונית חדשה|סגור את כל הלשוניות|נעילת PIN|הגדר PIN|הזן PIN|PIN שגוי|הסר PIN"],
+["id","Bahasa Indonesia","Peramban pribadi|Masuk|Cari atau ketik alamat|Pengaturan|Bahasa|JavaScript|Blokir cookie pihak ketiga|Hapus semua saat keluar|Blokir pelacak dan iklan|Hanya HTTPS|Hapus data sekarang|Perlindungan tangkapan layar|Tab|Tab baru|Tutup semua tab|Kunci PIN|Setel PIN|Masukkan PIN|PIN salah|Hapus PIN"],
+["vi","Tiếng Việt","Trình duyệt riêng tư|Vào|Tìm kiếm hoặc nhập địa chỉ|Cài đặt|Ngôn ngữ|JavaScript|Chặn cookie bên thứ ba|Xóa mọi thứ khi thoát|Chặn trình theo dõi và quảng cáo|Chỉ HTTPS|Xóa dữ liệu ngay|Chống chụp màn hình|Thẻ|Thẻ mới|Đóng tất cả thẻ|Khóa PIN|Đặt PIN|Nhập PIN|PIN sai|Xóa PIN"],
+["th","ไทย","เบราว์เซอร์ส่วนตัว|เข้าสู่ระบบ|ค้นหาหรือพิมพ์ที่อยู่|การตั้งค่า|ภาษา|JavaScript|บล็อกคุกกี้ของบุคคลที่สาม|ลบทุกอย่างเมื่อออก|บล็อกตัวติดตามและโฆษณา|HTTPS เท่านั้น|ล้างข้อมูลตอนนี้|ป้องกันภาพหน้าจอ|แท็บ|แท็บใหม่|ปิดทุกแท็บ|ล็อก PIN|ตั้งค่า PIN|ใส่ PIN|PIN ไม่ถูกต้อง|ลบ PIN"],
+["kk","Қазақша","Жеке браузер|Кіру|Іздеу немесе мекенжай|Баптаулар|Тіл|JavaScript|Үшінші тарап cookie-лерін бұғаттау|Шыққанда бәрін жою|Трекерлер мен жарнаманы бұғаттау|Тек HTTPS|Деректерді қазір тазалау|Скриншоттан қорғау|Қойындылар|Жаңа қойынды|Барлық қойындыны жабу|PIN құлпы|PIN орнату|PIN енгізіңіз|PIN қате|PIN жою"],
+["uz","O'zbek","Maxfiy brauzer|Kirish|Qidiring yoki manzil kiriting|Sozlamalar|Til|JavaScript|Uchinchi tomon cookie'larini bloklash|Chiqishda hammasini o'chirish|Trekerlar va reklamani bloklash|Faqat HTTPS|Ma'lumotlarni hozir tozalash|Skrinshotdan himoya|Varaqlar|Yangi varaq|Barcha varaqlarni yopish|PIN qulfi|PIN o'rnatish|PIN kiriting|PIN noto'g'ri|PINni o'chirish"],
+["ka","ქართული","კერძო ბრაუზერი|შესვლა|ძებნა ან მისამართი|პარამეტრები|ენა|JavaScript|მესამე მხარის cookie-ების დაბლოკვა|გასვლისას ყველაფრის წაშლა|ტრეკერებისა და რეკლამის დაბლოკვა|მხოლოდ HTTPS|მონაცემების ახლავე გასუფთავება|სკრინშოტისგან დაცვა|ჩანართები|ახალი ჩანართი|ყველა ჩანართის დახურვა|PIN დაბლოკვა|PIN-ის დაყენება|შეიყვანეთ PIN|არასწორი PIN|PIN-ის წაშლა"],
+["hy","Հայերեն","Գաղտնի զննարկիչ|Մուտք|Որոնել կամ մուտքագրել հասցե|Կարգավորումներ|Լեզու|JavaScript|Արգելափակել երրորդ կողմի cookie-ները|Ելքին ջնջել ամեն ինչ|Արգելափակել հետևիչները և գովազդը|Միայն HTTPS|Մաքրել տվյալները հիմա|Սքրինշոթից պաշտպանություն|Ներդիրներ|Նոր ներդիր|Փակել բոլոր ներդիրները|PIN կողպում|Սահմանել PIN|Մուտքագրեք PIN|Սխալ PIN|Հեռացնել PIN"],
+["bn","বাংলা","ব্যক্তিগত ব্রাউজার|প্রবেশ|খুঁজুন বা ঠিকানা লিখুন|সেটিংস|ভাষা|JavaScript|থার্ড-পার্টি কুকি ব্লক করুন|বের হলে সব মুছুন|ট্র্যাকার ও বিজ্ঞাপন ব্লক করুন|শুধু HTTPS|এখনই ডেটা মুছুন|স্ক্রিনশট সুরক্ষা|ট্যাব|নতুন ট্যাব|সব ট্যাব বন্ধ করুন|পিন লক|পিন সেট করুন|পিন দিন|ভুল পিন|পিন সরান"]
+];
+
+const BAR=136;
+const P={lang:"az",js:true,tp:true,clr:true,trk:true,https:false,shot:true};
+const $=id=>document.getElementById(id);
+let browsing=false;
+
+try{Object.assign(P,JSON.parse(Android.getPrefs()))}catch(e){}
+
+function T(i){const l=LANGS.find(x=>x[0]===P.lang)||LANGS[0];return l[2].split("|")[i]}
+function save(){try{Android.savePrefs(JSON.stringify(P))}catch(e){}}
+function full(f){try{Android.setFull(f,BAR)}catch(e){}}
+
+function applyLang(){
+  const rtl=["ar","fa","he"].includes(P.lang);
+  document.documentElement.dir=rtl?"rtl":"ltr";
+  document.documentElement.lang=P.lang;
+  document.querySelectorAll("[data-i]").forEach(e=>e.textContent=T(+e.dataset.i));
+  $("url").placeholder=T(2);
+}
+
+const OPTS=[["js",5],["tp",6],["clr",7],["trk",8],["https",9],["shot",11]];
+
+function renderChips(){
+  $("chips").innerHTML=[["tp",6],["clr",7],["trk",8],["https",9],["shot",11],["js",5]]
+    .map(([k,i])=>`<span class="chip ${P[k]?"on":"off"}"><b>${P[k]?"&#10003;":"&#10005;"}</b>${T(i)}</span>`).join("");
+}
+
+function buildSet(){
+  $("opts").innerHTML=OPTS.map(([k,i])=>
+    `<label class="row"><span>${T(i)}</span><input type="checkbox" data-k="${k}" ${P[k]?"checked":""}><u></u></label>`).join("");
+  document.querySelectorAll("#opts input").forEach(c=>c.onchange=()=>{P[c.dataset.k]=c.checked;save();renderChips()});
+}
+
+function renderPin(){
+  let has=false;try{has=Android.hasPin()}catch(e){}
+  const b=$("pinbtn");b.dataset.has=has?"1":"";b.textContent=has?T(19):T(16);
+}
+
+function refresh(){applyLang();renderChips();buildSet();renderPin()}
+
+/* ---------- tabs ---------- */
+let TABS=[],CUR=0;
+function onTabs(o){
+  TABS=o.l;CUR=o.c;$("tc").textContent=TABS.length;
+  if(!$("tabs").hidden)renderTabs();
+}
+function renderTabs(){
+  const L=$("tlist");L.innerHTML="";
+  TABS.forEach((t,i)=>{
+    const d=document.createElement("div");d.className="tab"+(i===CUR?" cur":"");
+    const tt=document.createElement("div");tt.className="tt";
+    const b=document.createElement("b");b.textContent=t.t||t.u||"FoCUS";
+    const s=document.createElement("small");s.textContent=t.u||"";
+    tt.append(b,s);
+    const x=document.createElement("button");x.className="ib";x.innerHTML="&#10005;";
+    x.onclick=e=>{e.stopPropagation();Android.closeTab(i)};
+    d.onclick=()=>Android.switchTab(i);
+    d.append(tt,x);L.append(d);
+  });
+}
+function openTabs(){
+  $("home").hidden=true;$("set").hidden=true;$("tabs").hidden=false;
+  renderTabs();full(true);
+}
+function closeTabs(){
+  $("tabs").hidden=true;
+  const t=TABS[CUR];browsing=!!(t&&t.u);
+  $("url").value=browsing?t.u:"";
+  if(browsing){full(false)}else{$("home").hidden=false}
+}
+function onSwitched(has){
+  $("tabs").hidden=true;$("set").hidden=true;browsing=has;$("pg").style.width="0";
+  $("home").hidden=has;if(!has)$("url").value="";
+}
+function newTabBtn(){Android.newTab();$("tabs").hidden=true;showHome()}
+function closeAllTabs(){Android.closeAll();$("tabs").hidden=true;showHome()}
+
+/* ---------- PIN keypad ---------- */
+let kp={mode:"",buf:"",first:""};
+function dots(){$("dots").innerHTML=[0,1,2,3].map(i=>`<i class="${i<kp.buf.length?"f":""}"></i>`).join("")}
+function kpTitle(){$("kpt").textContent=(kp.mode==="set"&&!kp.first)?T(16):T(17)}
+function openKp(m){
+  kp={mode:m,buf:"",first:""};
+  $("kp").hidden=false;$("kpx").hidden=(m==="lock");$("kpe").textContent="";
+  kpTitle();dots();
+}
+function closeKp(){$("kp").hidden=true;kp.buf="";kp.first=""}
+function showLock(){if(!$("kp").hidden&&kp.mode==="lock")return;full(true);openKp("lock")}
+function afterUnlock(){if(browsing&&$("set").hidden&&$("tabs").hidden&&!$("app").hidden)full(false)}
+function kpErr(msg){
+  $("kpe").textContent=msg;
+  const d=$("dots");d.classList.remove("shake");void d.offsetWidth;d.classList.add("shake");
+  kp.buf="";dots();
+}
+function kpKey(k){
+  if(k==="<"){kp.buf=kp.buf.slice(0,-1);dots();return}
+  if(kp.buf.length>=4)return;
+  kp.buf+=k;dots();$("kpe").textContent="";
+  if(kp.buf.length===4)setTimeout(kpDone,120);
+}
+function kpDone(){
+  const b=kp.buf;
+  if(kp.mode==="lock"){
+    const r=Android.checkPin(b);
+    if(r===1){Android.unlocked();closeKp();afterUnlock()}
+    else kpErr(r===-1?"\u23f3 30s":T(18));
+  }else if(kp.mode==="set"){
+    if(!kp.first){kp.first=b;kp.buf="";kpTitle();dots()}
+    else if(kp.first===b){Android.setPin(b);closeKp();renderPin()}
+    else{kp.first="";kpTitle();kpErr(T(18))}
+  }else if(kp.mode==="rm"){
+    const r=Android.removePin(b);
+    if(r===1){closeKp();renderPin()}else kpErr(r===-1?"\u23f3 30s":T(18));
+  }
+}
+
+function go(v){
+  v=(v||$("url").value).trim();
+  if(!v)return;
+  $("url").blur();
+  $("home").hidden=true;$("set").hidden=true;$("tabs").hidden=true;
+  browsing=true;
+  Android.go(v);
+}
+function showHome(){
+  browsing=false;$("url").value="";$("pg").style.width="0";
+  $("set").hidden=true;$("tabs").hidden=true;$("home").hidden=false;full(true);
+}
+function openSettings(){$("home").hidden=true;$("tabs").hidden=true;$("set").hidden=false;full(true)}
+function closeSettings(){
+  $("set").hidden=true;
+  if(browsing){full(false)}else{$("home").hidden=false}
+}
+function onUrl(u){$("url").value=u;browsing=true}
+function onProgress(p){const b=$("pg");b.style.width=p+"%";if(p>=100)setTimeout(()=>b.style.width="0",250)}
+function onBackKey(){
+  if(!$("kp").hidden){if(kp.mode!=="lock")closeKp();return "ok"}
+  if(!$("tabs").hidden){closeTabs();return "ok"}
+  if(!$("set").hidden){closeSettings();return "ok"}
+  return "exit";
+}
+
+/* init */
+$("lang").innerHTML=LANGS.map(l=>`<option value="${l[0]}">${l[1]}</option>`).join("");
+$("lang").value=P.lang;
+$("lang").onchange=e=>{P.lang=e.target.value;save();refresh()};
+$("url").addEventListener("keydown",e=>{if(e.key==="Enter")go()});
+$("enter").onclick=()=>{$("splash").hidden=true;$("app").hidden=false;showHome()};
+$("wipe").onclick=()=>{
+  try{Android.wipe()}catch(e){}
+  const b=$("wipe");b.textContent="\u2713";setTimeout(()=>b.textContent=T(10),1200);
+};
+$("pad").innerHTML=["1","2","3","4","5","6","7","8","9","","0","<"].map(k=>k===""?"<span></span>":`<button onclick="kpKey('${k}')">${k==="<"?"&#9003;":k}</button>`).join("");
+$("pinbtn").onclick=()=>openKp($("pinbtn").dataset.has?"rm":"set");
+refresh();
+try{onTabs(JSON.parse(Android.tabsJson()))}catch(e){}
+try{if(Android.needsLock())showLock()}catch(e){}
+</script>
+</body>
+</html>
